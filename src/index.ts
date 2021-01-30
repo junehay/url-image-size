@@ -1,15 +1,21 @@
-import express, { Application } from 'express';
 import url from 'url';
 import http from 'http';
 import https from 'https';
 import sizeOf from 'image-size';
-import dotenv from 'dotenv';
 
-dotenv.config();
+export interface ISize {
+  width: number | undefined;
+  height: number | undefined;
+  orientation?: number;
+  type?: string;
+}
+export interface ISizeCalculationResult extends ISize {
+  images?: ISize[];
+}
 
-const app: Application = express();
+export const getImageSize = async (imageUrl: string): Promise<ISizeCalculationResult> => {
+  const imgUrl = url.parse(imageUrl);
 
-const getImageSize = async (url: url.UrlWithStringQuery) => {
   return new Promise((resolve, reject) => {
     const aa = (res: http.IncomingMessage) => {
       if (!res.statusCode) {
@@ -29,12 +35,12 @@ const getImageSize = async (url: url.UrlWithStringQuery) => {
     };
 
     let req;
-    if (url.protocol === 'http:') {
-      req = http.get(url, (res) => {
+    if (imgUrl.protocol === 'http:') {
+      req = http.get(imgUrl, (res) => {
         aa(res);
       });
-    } else if (url.protocol === 'https:') {
-      req = https.get(url, (res) => {
+    } else if (imgUrl.protocol === 'https:') {
+      req = https.get(imgUrl, (res) => {
         aa(res);
       });
     }
@@ -49,19 +55,4 @@ const getImageSize = async (url: url.UrlWithStringQuery) => {
   });
 };
 
-// eslint-disable-next-line @typescript-eslint/no-misused-promises
-app.get('/', async (req, res) => {
-  const imgUrl = process.env.IMAGE_URL as string;
-  const options = url.parse(imgUrl);
-  const result = await getImageSize(options);
-
-  res.json(result);
-});
-
-// server
-const options = {
-  host: process.env.NODE_HOST || 'localhost',
-  port: process.env.NODE_PORT || 4000
-};
-
-app.listen(options, () => console.log(`server on!!! ${options.host}:${options.port}`));
+export default getImageSize;
