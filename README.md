@@ -31,7 +31,7 @@ yarn add image-size
 ```javascript
 import getImageSize from 'url-image-size';
 const imageSize = await getImageSize('https://nodejs.org/static/legacy/images/logo.png');
-console.log(imageSize.width, imageSize.height);
+console.log(imageSize);
 ```
 
 Result:

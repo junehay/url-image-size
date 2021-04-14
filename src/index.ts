@@ -1,4 +1,4 @@
-import url from 'url';
+import { URL } from 'url';
 import http from 'http';
 import https from 'https';
 import sizeOf from 'image-size';
@@ -14,36 +14,34 @@ export interface ISizeCalculationResult extends ISize {
 }
 
 export const getImageSize = async (imageUrl: string): Promise<ISizeCalculationResult> => {
-  const imgUrl = url.parse(imageUrl);
+  const imgUrl = new URL(imageUrl);
 
   return new Promise((resolve, reject) => {
-    const aa = (res: http.IncomingMessage) => {
+    const incomingMessageToSizeOf = (res: http.IncomingMessage) => {
       if (!res.statusCode) {
-        return reject(new Error(`no statucCode`));
-      } else {
-        if (res.statusCode < 200 || res.statusCode >= 300) {
-          return reject(new Error(`Status Code: ${res.statusCode}`));
-        }
-
-        const data: Buffer[] = [];
-        res.on('data', (chunk) => {
-          data.push(chunk);
-        });
-
-        res.on('end', () => resolve(sizeOf(Buffer.concat(data))));
+        return reject(new Error(`no Status Code`));
       }
+
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        return reject(new Error(`Status Code: ${res.statusCode}`));
+      }
+
+      const data: Buffer[] = [];
+      res.on('data', (chunk) => {
+        data.push(chunk);
+      });
+
+      res.on('end', () => resolve(sizeOf(Buffer.concat(data))));
     };
 
-    let req;
-    if (imgUrl.protocol === 'http:') {
-      req = http.get(imgUrl, (res) => {
-        aa(res);
-      });
-    } else if (imgUrl.protocol === 'https:') {
-      req = https.get(imgUrl, (res) => {
-        aa(res);
-      });
-    }
+    const req = (() => {
+      if (imgUrl.protocol === 'http:') {
+        return http.get(imgUrl, (res) => incomingMessageToSizeOf(res));
+      }
+      if (imgUrl.protocol === 'https:') {
+        return https.get(imgUrl, (res) => incomingMessageToSizeOf(res));
+      }
+    })();
 
     if (!req) {
       return reject(new Error(`protocol error`));
